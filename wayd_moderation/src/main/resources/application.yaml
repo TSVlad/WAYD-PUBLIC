@@ -1,0 +1,36 @@
+server:
+  port: 8086
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:9999/eureka/
+#    enabled: false
+
+spring:
+  application:
+    name: wayd-moderation
+  webflux:
+    base-path: /moderation-service-api
+  data:
+    mongodb:
+      auto-index-creation: true
+      uri: mongodb://localhost:27024/wayd-moderation
+  jackson:
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8484/auth/realms/WAYD/protocol/openid-connect/certs
+
+
+wayd:
+  kafka:
+    address: localhost:9092
+    groupId: event
+    producer:
+      id: event-producer
+  ban:
+    ban-coefficient: 1.5

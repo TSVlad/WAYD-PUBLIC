@@ -1,0 +1,30 @@
+server:
+  port: 8086
+
+eureka:
+  client:
+    enabled: false
+
+spring:
+  profiles:
+    active: test
+  application:
+    name: wayd-moderation
+  webflux:
+    base-path: /moderation-service-api
+  data:
+    mongodb:
+      auto-index-creation: true
+  jackson:
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+
+
+wayd:
+  kafka:
+    address: localhost:9092
+    groupId: event
+    producer:
+      id: event-producer
+  ban:
+    ban-coefficient: 1.5

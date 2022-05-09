@@ -1,0 +1,75 @@
+.delete-image-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 5;
+}
+
+.image-div {
+    position: relative;
+    left: 0;
+    top: 0;
+    width: 204px;
+    height: 204px;
+    border: black solid 2px;
+}
+
+.small-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    max-height: 200px;
+    max-width: 200px;
+}
+
+.event-page-carousel-image {
+    max-width: 100%;
+    max-height: 30vh;
+    margin: auto;
+}
+
+.add-image-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateY(-50%) translateX(-50%);
+}
+
+.filter-img-div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden
+}
+.filter-img-div img {
+    flex-shrink: 0;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.image-in-event-card {
+    cursor: pointer;
+}
+
+.avatar-div {
+    position: relative;
+    left: 0;
+    top: 0;
+    width: 200px;
+    height: 200px;
+}
+
+.avatar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    max-height: 200px;
+    max-width: 200px;
+    border-radius: 0.25rem;
+}
+
+.avatar-small-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}

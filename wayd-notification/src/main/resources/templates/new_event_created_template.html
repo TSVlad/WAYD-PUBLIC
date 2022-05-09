@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<!--/*@thymesVar id="creatorName" type="java.lang.String"*/-->
+<!--/*@thymesVar id="event" type="ru.tsvlad.waydnotification.messaging.dto.EventDTO"*/-->
+    User <span th:text="${creatorName}"></span> created new event:
+    <br/>
+    Name: <span th:text="${event.name}"></span>
+    <br/>
+    Description: <span th:text="${event.description}"></span>
+    <br/>
+    Date and time: <span th:text="${event.dateTime}"></span>
+</body>
+</html>

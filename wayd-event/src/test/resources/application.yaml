@@ -1,0 +1,28 @@
+server:
+  port: 8082
+
+
+eureka:
+  client:
+    enabled: false
+
+spring:
+  profiles:
+    active: test
+  application:
+    name: wayd-event
+  webflux:
+    base-path: /event-service-api
+  data:
+    mongodb:
+      auto-index-creation: true
+  jackson:
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+
+wayd:
+  kafka:
+    address: localhost:9092
+    groupId: event
+    producer:
+      id: event-producer

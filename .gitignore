@@ -1,0 +1,21 @@
+# Project exclude paths
+/wayd-event/target/
+/wayd-gateway/target/
+/wayd_registry/target/
+/wayd_user/target/
+/.idea/
+/wayd-event/wayd-event.iml
+/wayd-gateway/wayd-gateway.iml
+/wayd-orchestrator/wayd-orchestrator.iml
+/wayd-validator/wayd-validator.iml
+/wayd_registry/wayd_registry.iml
+/wayd_user/wayd_user.iml
+/wayd-client/.idea/
+/wayd-client/node_modules/
+/wayd-images/wayd-image.iml
+/wayd_neuron_validator/.idea/
+/wayd_neuron_validator/__pycache__/
+/wayd-notification/wayd-notification.iml
+/wayd-notification/target/
+/wayd_moderation/wayd_moderation.iml
+/wayd_moderation/target/

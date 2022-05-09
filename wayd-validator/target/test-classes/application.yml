@@ -1,0 +1,25 @@
+server:
+  port: 8083
+
+
+eureka:
+  client:
+    enabled: false
+
+spring:
+  profiles:
+    active: test
+  application:
+    name: wayd-validator
+  webflux:
+    base-path: /validator-service-api
+  data:
+    mongodb:
+      auto-index-creation: true
+
+wayd:
+  kafka:
+    address: localhost:9092
+    groupId: validator
+    producer:
+      id: validator-producer

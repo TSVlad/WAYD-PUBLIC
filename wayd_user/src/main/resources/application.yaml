@@ -1,0 +1,39 @@
+spring:
+#  datasource:
+#    url: jdbc:postgresql://localhost:5433/wayd_user
+#    username: root
+#    password: root
+  application:
+    name: wayd-user
+
+
+server:
+  port: 8081
+  servlet:
+    context-path: /user-service-api
+
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:9999/eureka/
+#    enabled: false
+
+keycloak:
+  enabled: true
+  auth-server-url: http://localhost:8484/auth
+  realm: WAYD
+  resource: user-service
+  credentials:
+    secret: w2I3mMBLDlEZXEyKpwMq13i3adL7fz6j
+
+wayd:
+  kafka:
+    address: localhost:9092
+    groupId: user
+    producer:
+      id: user-producer
+  confirmation-code:
+    duration: 15
+    length: 6
+

@@ -1,0 +1,67 @@
+server:
+    port: 8080
+
+
+eureka:
+    client:
+        serviceUrl:
+            defaultZone: http://localhost:9999/eureka/
+
+
+spring:
+    application:
+        name: wayd-gateway
+    cloud:
+        gateway:
+            routes:
+                - id: user
+                  uri: lb://wayd-user
+                  predicates:
+                      - Path=/wayd-user/**
+                  filters:
+                      - StripPrefix=1
+
+                - id: event
+                  uri: lb://wayd-event
+                  predicates:
+                      - Path=/wayd-event/**
+                  filters:
+                      - StripPrefix=1
+
+                - id: image
+                  uri: lb://wayd-image
+                  predicates:
+                    - Path=/wayd-image/**
+                  filters:
+                    - StripPrefix=1
+
+                - id: notification
+                  uri: lb://wayd-notification
+                  predicates:
+                    - Path=/wayd-notification/**
+                  filters:
+                    - StripPrefix=1
+
+                - id: validator
+                  uri: lb://wayd-validator
+                  predicates:
+                    - Path=/wayd-validator/**
+                  filters:
+                    - StripPrefix=1
+
+                - id: moderation
+                  uri: lb://wayd-moderation
+                  predicates:
+                    - Path=/wayd-moderation/**
+                  filters:
+                    - StripPrefix=1
+
+
+            default-filters:
+              - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+            globalcors:
+              cors-configurations:
+                '[/**]':
+                  allowedOrigins: "http://localhost:3000"
+                  allowedMethods: "*"
+                  allowedHeaders: "*"

@@ -1,0 +1,2 @@
+ALTER TABLE users
+ADD COLUMN send_to_email BOOLEAN DEFAULT true NOT NULL;

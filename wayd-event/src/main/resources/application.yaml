@@ -1,0 +1,36 @@
+server:
+  port: 8082
+
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:9999/eureka/
+
+spring:
+  application:
+    name: wayd-event
+  webflux:
+    base-path: /event-service-api
+  data:
+    mongodb:
+      auto-index-creation: true
+      uri: mongodb://root:root@localhost:27021/wayd-event
+  jackson:
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8484/auth/realms/WAYD/protocol/openid-connect/certs
+
+jwt:
+  secret: very-secret-key
+
+wayd:
+  kafka:
+    address: localhost:9092
+    groupId: event
+    producer:
+      id: event-producer

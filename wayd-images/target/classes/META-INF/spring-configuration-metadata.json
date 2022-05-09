@@ -1,0 +1,49 @@
+{
+  "groups": [
+    {
+      "name": "minio",
+      "type": "ru.tsvlad.waydimage.config.props.MinioProperties",
+      "sourceType": "ru.tsvlad.waydimage.config.props.MinioProperties"
+    },
+    {
+      "name": "wayd.image",
+      "type": "ru.tsvlad.waydimage.config.props.ImageProperties",
+      "sourceType": "ru.tsvlad.waydimage.config.props.ImageProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "minio.host",
+      "type": "java.lang.String",
+      "sourceType": "ru.tsvlad.waydimage.config.props.MinioProperties"
+    },
+    {
+      "name": "minio.password",
+      "type": "java.lang.String",
+      "sourceType": "ru.tsvlad.waydimage.config.props.MinioProperties"
+    },
+    {
+      "name": "minio.username",
+      "type": "java.lang.String",
+      "sourceType": "ru.tsvlad.waydimage.config.props.MinioProperties"
+    },
+    {
+      "name": "wayd.image.bucket",
+      "type": "java.lang.String",
+      "sourceType": "ru.tsvlad.waydimage.config.props.ImageProperties"
+    },
+    {
+      "name": "wayd.image.max-size",
+      "type": "java.lang.Integer",
+      "sourceType": "ru.tsvlad.waydimage.config.props.ImageProperties",
+      "defaultValue": 0
+    },
+    {
+      "name": "wayd.image.small-max-size",
+      "type": "java.lang.Integer",
+      "sourceType": "ru.tsvlad.waydimage.config.props.ImageProperties",
+      "defaultValue": 0
+    }
+  ],
+  "hints": []
+}

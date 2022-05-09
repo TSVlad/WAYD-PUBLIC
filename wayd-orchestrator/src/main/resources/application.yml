@@ -1,0 +1,20 @@
+server:
+  port: 8008
+
+
+eureka:
+  client:
+    enabled: false
+    serviceUrl:
+      defaultZone: http://localhost:9999/eureka/
+
+spring:
+  application:
+    name: wayd-orchestrator
+
+wayd:
+  kafka:
+    address: localhost:9092
+    groupId: orchestrator
+    producer:
+      id: orchestrator-producer

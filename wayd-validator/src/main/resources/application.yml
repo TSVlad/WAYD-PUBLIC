@@ -1,0 +1,31 @@
+server:
+  port: 8083
+
+
+eureka:
+  client:
+#    enabled: false
+    serviceUrl:
+      defaultZone: http://localhost:9999/eureka/
+
+spring:
+  application:
+    name: wayd-validator
+  webflux:
+    base-path: /validator-service-api
+  data:
+    mongodb:
+      auto-index-creation: true
+      uri: mongodb://localhost:27023/wayd-validator
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8484/auth/realms/WAYD/protocol/openid-connect/certs
+
+wayd:
+  kafka:
+    address: localhost:9092
+    groupId: validator
+    producer:
+      id: validator-producer

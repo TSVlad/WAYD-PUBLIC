@@ -1,0 +1,38 @@
+server:
+  port: 8085
+
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:9999/eureka/
+
+spring:
+  profiles:
+    active: test
+  application:
+    name: wayd-image
+  webflux:
+    base-path: /image-service-api
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50KB
+  data:
+    mongodb:
+      auto-index-creation: true
+
+wayd:
+  kafka:
+    groupId: image
+    producer:
+      id: image-producer
+  image:
+    bucket: images
+    max-size: 1000
+    small-max-size: 200
+
+minio:
+  username: minioadmin
+  password: minioadmin
+  host: http://localhost:9000

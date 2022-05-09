@@ -1,0 +1,429 @@
+version: "3.9"
+
+volumes:
+    keycloak_postgres_data:
+        driver: local
+    minio_data:
+        driver: local
+    user-service-postgres-data:
+        driver: local
+    event-service-mongo-data:
+        driver: local
+    image-service-mongo-data:
+        driver: local
+    notification-service-postgres-data:
+        driver: local
+    validator-service-mongo-data:
+        driver: local
+    moderation-service-mongo-data:
+        driver: local
+    graylog-mongo-data:
+        driver: local
+    graylog-elasticsearch-data:
+        driver: local
+    graylog-data:
+        driver: local
+    graylog-config:
+        driver: local
+
+services:
+
+    keycloak-postgres:
+        image: postgres:14.2
+        container_name: keycloak-postgres
+        environment:
+            POSTGRES_USER: $KEYCLOAK_POSTGRES_USER
+            POSTGRES_PASSWORD: $KEYCLOAK_POSTGRES_PASSWORD
+            POSTGRES_DB: $KEYCLOAK_POSTGRES_DB
+        ports:
+            - "5431:5432"
+        restart: unless-stopped
+        volumes:
+            - keycloak_postgres_data:/var/lib/postgresql/data
+            #- ./imports/keycloak-postgres/dump.sql:/docker-entrypoint-initdb.d/dummy_dump.sql
+        networks:
+            - internal
+
+    keycloak:
+        image: jboss/keycloak:16.1.1
+        container_name: keycloak
+        environment:
+            DB_VENDOR: POSTGRES
+            DB_ADDR: keycloak-postgres
+            DB_PORT: 5432
+            DB_DATABASE: $KEYCLOAK_POSTGRES_DB
+            DB_USER: $KEYCLOAK_POSTGRES_USER
+            DB_PASSWORD: $KEYCLOAK_POSTGRES_PASSWORD
+            #KEYCLOAK_USER: $KEYCLOAK_USER
+            #KEYCLOAK_PASSWORD: $KEYCLOAK_PASSWORD
+            KEYCLOAK_IMPORT: /opt/jboss/keycloak/imports/realm-export.json -Dkeycloak.profile.feature.upload_scripts=enabled
+        ports:
+            - "8484:8080"
+        depends_on:
+            - keycloak-postgres
+        volumes:
+            - ./imports/keycloak:/opt/jboss/keycloak/imports
+        restart: unless-stopped
+        networks:
+            - internal
+            
+    kafka-zookeeper:
+        image: confluentinc/cp-zookeeper:6.2.0
+        container_name: kafka-zookeeper
+        environment:
+            ZOOKEEPER_CLIENT_PORT: 2181
+            ZOOKEEPER_TICK_TIME: 2000
+        networks:
+            - internal
+        restart: unless-stopped
+
+    kafka-broker:
+        image: confluentinc/cp-kafka:6.2.0
+        container_name: kafka-broker
+        ports:
+            - "9092:9092"
+        depends_on:
+            - kafka-zookeeper
+        environment:
+            KAFKA_BROKER_ID: 1
+            KAFKA_ZOOKEEPER_CONNECT: 'kafka-zookeeper:2181'
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker:9092,PLAINTEXT_INTERNAL://kafka-broker:29092
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+            KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+        networks:
+            - internal
+        restart: unless-stopped
+            
+    minio:
+        image: minio/minio:RELEASE.2022-03-11T11-08-23Z.hotfix.29c773d72
+        container_name: minio
+        ports:
+            - "9000:9000"
+            - "9001:9001"
+        environment:
+            MINIO_ROOT_USER: $MINIO_USER
+            MINIO_ROOT_PASSWORD: $MINIO_PASSWORD
+        volumes:
+            - minio_data:/data
+        command: server /data --console-address ":9001"
+        restart: unless-stopped
+        networks:
+            - internal
+            
+    graylog-mongo:
+        container_name: graylog-mongo
+        image: mongo:5.0.6
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: admin
+            MONGO_INITDB_ROOT_PASSWORD: admin
+        volumes:
+            - graylog-mongo-data:/data/db
+        ports:
+            - 27025:27017
+        networks:
+            - internal
+        
+    graylog-elasticsearch:
+        container_name: graylog-elasticsearch       
+        image: elasticsearch:7.10.1
+        environment:
+            - http.host=0.0.0.0
+            - transport.host=localhost
+            - network.host=0.0.0.0
+            - xpack.security.enabled=false
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+        volumes:
+            - graylog-elasticsearch-data:/usr/share/elasticsearch/data
+        ports:
+            - 9200:9200
+        networks:
+            - internal
+    
+    graylog:
+        container_name: graylog
+        image: graylog/graylog:4.1-jre11
+        environment:
+            GRAYLOG_PASSWORD_SECRET: QL28xUN3yAbhgNTW
+            #'admin' hash
+            GRAYLOG_ROOT_PASSWORD_SHA2: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+            GRAYLOG_ROOT_USERNAME: admin
+            GRAYLOG_WEB_ENDPOINT_URI: http://127.0.0.1:9000
+            GRAYLOG_MONGODB_URI: mongodb://admin:admin@graylog-mongo:27017/graylog?authSource=admin
+            GRAYLOG_ELASTICSEARCH_HOSTS: http://graylog-elasticsearch:9200
+        entrypoint: /usr/bin/tini -- wait-for-it graylog-elasticsearch:9200 --  /docker-entrypoint.sh
+        volumes:
+            - graylog-data:/usr/share/graylog/data
+            - graylog-config:/usr/share/graylog/data/config
+        ports: 
+            - 9002:9000
+            - 12201:12201/udp
+        depends_on:
+            - graylog-mongo
+            - graylog-elasticsearch
+        networks:
+            - internal
+        
+    registry-microservice:
+        container_name: registry-microservice
+        build: ./wayd_registry
+        environment:
+            GRAYLOG_HOST: graylog
+            GRAYLOG_PORT: 12201
+        ports:
+            - 9999:9999
+        networks:
+            - internal
+    
+    gateway-microservice:
+        container_name: gateway-microservice
+        build: ./wayd-gateway
+        ports:
+            - 8080:8080
+        environment:
+            EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://registry-microservice:9999/eureka
+            GRAYLOG_HOST: graylog
+            GRAYLOG_PORT: 12201
+        networks:
+            - internal
+    
+    user-service-postgres:
+        image: postgres:14.2
+        container_name: user-service-postgres
+        environment:
+            POSTGRES_USER: $USER_POSTGRES_USER
+            POSTGRES_PASSWORD: $USER_POSTGRES_PASSWORD
+            POSTGRES_DB: $USER_POSTGRES_DB
+        ports:
+            - "5433:5432"
+        restart: unless-stopped
+        volumes:
+            - user-service-postgres-data:/var/lib/postgresql/data
+        networks:
+            - internal
+    
+    user-microservice:
+        container_name: user-microservice
+        build: ./wayd_user
+        ports:
+            - 8081:8081
+        environment:
+            EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://registry-microservice:9999/eureka
+            WAYD_KAFKA_ADDRESS: kafka-broker:9092
+            KEYCLOAK_AUTH-SERVER-URL: http://host.docker.internal:8484/auth
+            KEYCLOAK_CREDENTIALS_SECRET: $USER_KEYCLOAK_SECRET
+            SPRING_DATASOURCE_URL: jdbc:postgresql://user-service-postgres:5432/$USER_POSTGRES_DB
+            SPRING_DATASOURCE_USERNAME: $USER_POSTGRES_USER
+            SPRING_DATASOURCE_PASSWORD: $USER_POSTGRES_PASSWORD
+            GRAYLOG_HOST: graylog
+            GRAYLOG_PORT: 12201
+        networks:
+            - internal
+        restart: unless-stopped
+        
+    event-service-mongo:
+        image: mongo:5.0.6
+        container_name: event-service-mongo
+        ports:
+            - 27021:27017
+        environment:
+            MONGO_INITDB_DATABASE: $EVENT_MONGO_DB
+            MONGO_INITDB_ROOT_USERNAME: $EVENT_MONGO_USER
+            MONGO_INITDB_ROOT_PASSWORD: $EVENT_MONGO_PASSWORD
+        volumes:
+            - event-service-mongo-data:/data/db
+        networks:
+            - internal
+        restart: unless-stopped
+        
+    event-microservice:
+        build: ./wayd-event
+        container_name: event-microservice
+        ports:
+            - 8082:8082
+        environment:
+            EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://registry-microservice:9999/eureka
+            WAYD_KAFKA_ADDRESS: kafka-broker:9092
+            SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI: http://keycloak:8080/auth/realms/WAYD/protocol/openid-connect/certs
+            SPRING_DATA_MONGODB_URI: mongodb://$EVENT_MONGO_USER:$EVENT_MONGO_PASSWORD@event-service-mongo:27017/$EVENT_MONGO_DB
+            GRAYLOG_HOST: graylog
+            GRAYLOG_PORT: 12201
+        networks:
+            - internal
+        restart: unless-stopped
+        
+    image-service-mongo:
+        image: mongo:5.0.6
+        container_name: image-service-mongo
+        ports:
+            - 27022:27017
+        environment:
+            MONGO_INITDB_DATABASE: $IMAGE_MONGO_DB
+            MONGO_INITDB_ROOT_USERNAME: $IMAGE_MONGO_USER
+            MONGO_INITDB_ROOT_PASSWORD: $IMAGE_MONGO_PASSWORD
+        volumes:
+            - image-service-mongo-data:/data/db
+        networks:
+            - internal
+        restart: unless-stopped
+        
+    image-microservice:
+        build: ./wayd-images
+        container_name: image-microservice
+        ports:
+            - 8085:8085
+        environment:
+            EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://registry-microservice:9999/eureka
+            WAYD_KAFKA_ADDRESS: kafka-broker:9092
+            SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI: http://keycloak:8080/auth/realms/WAYD/protocol/openid-connect/certs
+            SPRING_DATA_MONGODB_URI: mongodb://$IMAGE_MONGO_USER:$IMAGE_MONGO_PASSWORD@image-service-mongo:27017/$IMAGE_MONGO_DB
+            MINIO_USERNAME: $MINIO_USER
+            MINIO_PASSWORD: $MINIO_PASSWORD
+            MINIO_HOST: http://host.docker.internal:9000
+            GRAYLOG_HOST: graylog
+            GRAYLOG_PORT: 12201
+        networks:
+            - internal
+        restart: unless-stopped
+        
+    notification-service-postgres:
+        image: postgres:14.2
+        container_name: notification-service-postgres
+        environment:
+            POSTGRES_USER: $NOTIFICATION_POSTGRES_USER
+            POSTGRES_PASSWORD: $NOTIFICATION_POSTGRES_PASSWORD
+            POSTGRES_DB: $NOTIFICATION_POSTGRES_DB
+        ports:
+            - "5434:5432"
+        restart: unless-stopped
+        volumes:
+            - notification-service-postgres-data:/var/lib/postgresql/data
+        networks:
+            - internal
+    
+    notification-microservice:
+        container_name: notification-microservice
+        build: ./wayd-notification
+        ports:
+            - 8084:8084
+        environment:
+            EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://registry-microservice:9999/eureka
+            WAYD_KAFKA_ADDRESS: kafka-broker:9092
+            SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI: http://keycloak:8080/auth/realms/WAYD/protocol/openid-connect/certs
+            SPRING_DATASOURCE_URL: jdbc:postgresql://notification-service-postgres:5432/$NOTIFICATION_POSTGRES_DB
+            SPRING_DATASOURCE_USERNAME: $NOTIFICATION_POSTGRES_USER
+            SPRING_DATASOURCE_PASSWORD: $NOTIFICATION_POSTGRES_PASSWORD
+            GRAYLOG_HOST: graylog
+            GRAYLOG_PORT: 12201
+        networks:
+            - internal
+        restart: unless-stopped
+        
+    orchestrator-microservice:
+        container_name: orchestrator-microservice
+        build: ./wayd-orchestrator
+        ports:
+            - 8008:8008
+        environment:
+            EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://registry-microservice:9999/eureka
+            WAYD_KAFKA_ADDRESS: kafka-broker:9092
+            GRAYLOG_HOST: graylog
+            GRAYLOG_PORT: 12201
+        networks:
+            - internal
+        restart: unless-stopped
+        
+    validator-service-mongo:
+        image: mongo:5.0.6
+        container_name: validator-service-mongo
+        ports:
+            - 27023:27017
+        environment:
+            MONGO_INITDB_DATABASE: $IMAGE_MONGO_DB
+            MONGO_INITDB_ROOT_USERNAME: $IMAGE_MONGO_USER
+            MONGO_INITDB_ROOT_PASSWORD: $IMAGE_MONGO_PASSWORD
+        volumes:
+            - validator-service-mongo-data:/data/db
+        networks:
+            - internal
+        restart: unless-stopped
+        
+    validator-microservice:
+        build: ./wayd-validator
+        container_name: validator-microservice
+        ports:
+            - 8083:8083
+        environment:
+            EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://registry-microservice:9999/eureka
+            WAYD_KAFKA_ADDRESS: kafka-broker:9092
+            SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI: http://keycloak:8080/auth/realms/WAYD/protocol/openid-connect/certs
+            SPRING_DATA_MONGODB_URI: mongodb://$VALIDATOR_MONGO_USER:$VALIDATOR_MONGO_PASSWORD@validator-service-mongo:27017/$VALIDATOR_MONGO_DB
+            GRAYLOG_HOST: graylog
+            GRAYLOG_PORT: 12201
+        networks:
+            - internal
+        restart: unless-stopped
+        
+    moderation-service-mongo:
+        image: mongo:5.0.6
+        container_name: moderation-service-mongo
+        ports:
+            - 27024:27017
+        environment:
+            MONGO_INITDB_DATABASE: $MODERATION_MONGO_DB
+            MONGO_INITDB_ROOT_USERNAME: $MODERATION_MONGO_USER
+            MONGO_INITDB_ROOT_PASSWORD: $MODERATION_MONGO_PASSWORD
+        volumes:
+            - moderation-service-mongo-data:/data/db
+        networks:
+            - internal
+        restart: unless-stopped
+        
+    moderation-microservice:
+        build: ./wayd_moderation
+        container_name: moderation-microservice
+        ports:
+            - 8086:8086
+        environment:
+            EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://registry-microservice:9999/eureka
+            WAYD_KAFKA_ADDRESS: kafka-broker:9092
+            SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI: http://keycloak:8080/auth/realms/WAYD/protocol/openid-connect/certs
+            SPRING_DATA_MONGODB_URI: mongodb://$MODERATION_MONGO_USER:$MODERATION_MONGO_PASSWORD@moderation-service-mongo:27017/$MODERATION_MONGO_DB?authSource=admin
+            GRAYLOG_HOST: graylog
+            GRAYLOG_PORT: 12201
+        networks:
+            - internal
+        restart: unless-stopped
+    
+    neuron-validator-microservice:
+        build: ./wayd_neuron_validator
+        container_name: neuron-validator-microservice
+        ports:
+            - 8087:8087
+        environment:
+            KAFKA_ADDRESS: kafka-broker:9092
+        command: python app.py
+        networks:
+            - internal
+        restart: unless-stopped
+        
+    client-microservice:
+        build: ./wayd-client
+        container_name: client-microservice
+        ports:
+            - 3000:3000
+        environment:
+            GATEWAY_ADDRESS: http://wayd-gateway:8080
+            KEYCLOAK_ADDRESS: http://host.docker.internal:8484/auth
+        networks:
+            - internal
+        restart: unless-stopped
+    
+networks:
+    internal:
+        driver: bridge

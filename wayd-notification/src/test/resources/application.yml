@@ -1,0 +1,46 @@
+server:
+  port: 8084
+  servlet:
+    context-path: /notification-service-api
+
+eureka:
+    client:
+      enabled: false
+
+spring:
+  profiles:
+    active: test
+  application:
+    name: wayd-notification
+  webflux:
+    base-path: /notification-service-api
+  datasource:
+    url: jdbc:postgresql://localhost:5434/wayd_notification
+    username: root
+    password: root
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: wayd.system@gmail.com
+    password: wdsfmhegrprclxtr
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8484/auth/realms/WAYD/protocol/openid-connect/certs
+
+
+wayd:
+  kafka:
+    address: localhost:9092
+    groupId: notification
+    producer:
+      id: notification-producer
+  jwt:
+    secret: very-secret-key
